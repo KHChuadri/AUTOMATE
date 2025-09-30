@@ -1,4 +1,4 @@
-import { supabase } from "@/config/supabase";
+import { supabase } from "../config/supabase";
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
