@@ -16,8 +16,7 @@ http.interceptors.request.use((config) => {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`
   }
-  console.log("config", config)
-  console.log("token", token)
+  
   return config
 })
 

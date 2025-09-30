@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import authRoutes from './routes/authRoutes'
 
 dotenv.config();
 
@@ -57,6 +58,9 @@ app.post('/api/users', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' }); // Added return
   }
 });
+
+// Mount auth routes (provides /auth/register and /auth/login)
+app.use('/', authRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
