@@ -110,7 +110,7 @@ const Dashboard: React.FC = () => {
           {/* Call to Action */}
           <div className="text-center">
             <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-12 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <span className="flex items-center justify-center">
+              <span className="flex items-center justify-center" onClick={() => navigate("/record")}>
                 Start a New Session
                 <svg className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
