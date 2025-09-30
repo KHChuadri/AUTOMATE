@@ -28,6 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { name, email, password }
       )
       if (res.error) return { error: new Error(res.error) }
+      if (res.token && res.user) {
+        localStorage.setItem('auth_token', res.token)
+        localStorage.setItem('auth_user', JSON.stringify(res.user))
+        setToken(res.token)
+        setUser(res.user)
+      }
       return { error: undefined }
     } catch (e: unknown) {
       const axiosErr = e as { response?: { data?: { error?: string } } }
@@ -42,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         '/auth/login',
         { email, password }
       )
+      
       if (res.error) return { error: new Error(res.error) }
       if (res.token && res.user) {
         localStorage.setItem('auth_token', res.token)
