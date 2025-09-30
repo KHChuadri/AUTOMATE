@@ -2,6 +2,7 @@ import { Socket } from 'socket.io';
 import WebSocket from 'ws';
 import { sessions } from '../socketHandler';
 import { createAssemblyAIConnection } from '../../services/assemblyAI';
+//import { StopCurrentSession } from '../../services/openAI';
 
 export const handleStreamEvents = (socket: Socket) => {
   let assemblySocket: WebSocket | null = null;
@@ -28,11 +29,12 @@ export const handleStreamEvents = (socket: Socket) => {
   });
 
   socket.on('stop-stream', () => {
+    //StopCurrentSession();
     console.log("stop here");
     const session = sessions.get(socket.id);
     if (session?.assemblySocket?.readyState === WebSocket.OPEN) {
       // Send termination message as JSON
-      session.assemblySocket.send(JSON.stringify({ type: 'Terminate' }));
+      session.assemblySocket.send(JSON.stringify({ type: 'Termination' }));
       // Close connection after a short delay
       setTimeout(() => {
         session.assemblySocket?.close();
