@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { initializeSocketHandlers } from './socket/socketHandler';
+import authRoutes from './routes/authRoutes'
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/', authRoutes);
 
 // Socket.IO setup
 const io = new Server(httpServer, {
