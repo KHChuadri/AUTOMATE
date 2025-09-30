@@ -2,12 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import authRoutes from './routes/authRoutes'
+import { Server } from 'socket.io';
+import { createServer } from 'http';
+import { initializeSocketHandlers } from './socket/socketHandler';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const httpServer = createServer(app);
+const PORT = process.env.PORT || 5003;
 
 // Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -18,50 +21,23 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cors());
 app.use(express.json());
 
+// Socket.IO setup
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Initialize socket handlers
+initializeSocketHandlers(io);
+
 // Routes
 app.get('/api/health', (_req, res) => {
   return res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Example API endpoint
-app.get('/api/users', async (_req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*');
-    
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-    
-    return res.json(data); // Added return
-  } catch (err) {
-    return res.status(500).json({ error: 'Internal server error' }); // Added return
-  }
-});
-
-app.post('/api/users', async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    
-    const { data, error } = await supabase
-      .from('users')
-      .insert([{ name, email }])
-      .select();
-    
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-    
-    return res.status(201).json(data); // Added return
-  } catch (err) {
-    return res.status(500).json({ error: 'Internal server error' }); // Added return
-  }
-});
-
-// Mount auth routes (provides /auth/register and /auth/login)
-app.use('/', authRoutes)
-
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Socket.IO ready on http://localhost:${PORT}`);
 });
