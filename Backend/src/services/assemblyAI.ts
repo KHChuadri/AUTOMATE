@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { Socket } from 'socket.io';
 import dotenv from "dotenv";
+import { GenerateMermaidDiagram } from './openAI';
 
 dotenv.config();
 
@@ -82,6 +83,9 @@ const handleAssemblyAIMessage = (message: AssemblyAIMessage, socket: Socket) => 
     // Send partial or final transcript to frontend
     if (isFormatted && endOfTurn) {
       console.log('Final transcript:', transcript);
+      GenerateMermaidDiagram(transcript);
+      // count ++ if count = 0 erase history and create a new dr
+      //else continue from previous prompts
       socket.emit('transcript', { text: transcript, final: true });
       
       // Parse with AI only on final transcripts
