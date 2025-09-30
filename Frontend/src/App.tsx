@@ -4,8 +4,9 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import LandingPage from './components/LandingPage'
 import Login from './components/auth/Login'
 import Register from './components/auth/Register'
-import Dashboard from './components/Dashboard'
+import Dashboard from './pages/Dashboard'
 import StartSession from './components/StartSession'
+import Record from './pages/Record'
 import './App.css'
 
 function App() {
@@ -29,6 +30,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <StartSession />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path='/record'
+            element={
+              <ProtectedRoute>
+                <Record />
               </ProtectedRoute>
             }
           />
