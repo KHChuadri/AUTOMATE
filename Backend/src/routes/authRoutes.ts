@@ -50,10 +50,20 @@ router.post("/auth/register", async (req, res) => {
             return res.status(500).json({ error: "Failed to create user" });
         }
 
+        const token = jwt.sign(
+            { 
+                userId: data[0].id, 
+                email: data[0].email 
+            },
+            JWT_SECRET,
+            { expiresIn: "24h" }
+        );
+
         return res.status(201).json({ 
             success: true, 
             message: "User registered successfully",
-            user: { id: data[0].id, name: data[0].name, email: data[0].email }
+            user: { id: data[0].id, name: data[0].name, email: data[0].email },
+            token: token
         });
     } catch (error) {
         console.error("Registration error:", error);
