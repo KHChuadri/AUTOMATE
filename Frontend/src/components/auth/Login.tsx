@@ -14,16 +14,20 @@ const Login: React.FC = () => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    const { error } = await signIn(email, password)
-
-    if (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-    } else {
+    try {
+      const { error } = await signIn(email, password)
+      if (error) {
+        setError(error instanceof Error ? error.message : 'An error occurred')
+        return
+      }
       navigate('/dashboard')
+    } catch (err: unknown) {
+      const axiosErr = err as { message?: string }
+      const message = axiosErr.message || 'Network error'
+      setError(message)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
@@ -76,8 +80,8 @@ const Login: React.FC = () => {
           </div>
 
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="rounded-md bg-red-200 p-4">
+              <div className="text-sm text-red-700 text-center">{error}</div>
             </div>
           )}
 
