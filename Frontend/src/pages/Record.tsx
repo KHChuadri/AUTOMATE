@@ -65,8 +65,8 @@ function Record() {
       // Create audio context
       const audioContext = new (window.AudioContext ||
         (window as any).webkitAudioContext)({
-        sampleRate: 16000,
-      });
+          sampleRate: 16000,
+        });
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
@@ -140,9 +140,8 @@ function Record() {
         <div className="mb-6 p-4 bg-gray-800 rounded">
           <p className="text-sm text-gray-400">Connection Status:</p>
           <p
-            className={`font-semibold ${
-              isConnected ? "text-green-400" : "text-red-400"
-            }`}
+            className={`font-semibold ${isConnected ? "text-green-400" : "text-red-400"
+              }`}
           >
             {isConnected ? "✓ Connected" : "✗ Disconnected"}
           </p>
