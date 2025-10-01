@@ -1,6 +1,10 @@
 import React from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
+import { FaPlus } from "react-icons/fa6"
+import { SlCamrecorder } from "react-icons/sl";
+import SearchBar from "../components/SearchBar"
+import Diagram from "../components/Diagram"
 
 const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
@@ -16,7 +20,7 @@ const Dashboard: React.FC = () => {
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
@@ -29,6 +33,9 @@ const Dashboard: React.FC = () => {
                 </h1>
               </div>
             </div>
+
+            <div className='flex items-center justify-center w-1/2'><SearchBar /></div>
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3 bg-white/50 rounded-lg px-3 py-2 border border-gray-200/50">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -50,30 +57,47 @@ const Dashboard: React.FC = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 flex flex-col gap-5">
         {/* Call to Action */}
-        <div className="text-center">
-          <button onClick={() => navigate('/session/new')} className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-12 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105">
-            <span className="flex items-center justify-center">
-              Start a New Session
-              <svg className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-          </button>
+        
+        <div className="flex flex-col gap-1.5 mt-3 mb-2">
+          <h2 className="text-6xl font-bold">{`Welcome Back Name`}</h2>
+          <p className="pl-2 text-lg text-gray-500">Create or edit a new diagram from meeting</p>
+        </div>
 
-          {/* Call to Action */}
-          <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-12 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105">
-            <span className="flex items-center justify-center" onClick={() => navigate("/record")}>
-              Websocket test
-              <svg className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-          </button>
-          <p className="text-gray-500 text-sm mt-4">
-            No credit card required • Free trial included
-          </p>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-row justify-between ">
+            <button 
+              onClick={() => navigate('/session/new')} 
+              className= "w-1/4 group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+            >
+              <span className="flex items-center justify-center gap-3">
+                New Diagram
+                <FaPlus />
+              </span>
+            </button>
+
+            <button
+              onClick={() => navigate('/session/new')} 
+              className="w-1/4 group bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105"
+            > 
+              <span className="flex items-center justify-center gap-3">
+                Record Session
+                <SlCamrecorder />
+              </span>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-5 border-2 border-gray-200 rounded-lg pb-3">
+            <div className='bg-gray-200 px-4 py-3'>
+              <h2 className="font-bold text-2xl text-black">Diagram History</h2>
+            </div>
+            
+            <div className='grid grid-cols-3 px-4 w-full'>
+              <Diagram />
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

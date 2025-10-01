@@ -9,7 +9,6 @@ const Register: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
