@@ -9,12 +9,13 @@ export async function GenerateMermaidDiagram(transcript: string) {
   try {
     const response = await openai.responses.create({
       model: "gpt-5-nano",
-      input: `Generate Mermaid.js code for a diagram from previous prompts (if any), including ${transcript}, and output only the code.`
+      input: `Generate a valid Mermaid.js code without the language wrapper e.g. \`\`\`mermaid for a diagram from previous prompts (if any), including ${transcript}, and output only the code.`
     });
-
     console.log(response.output_text);
+    return response.output_text;
   } catch (error) {
     console.error(error);
+    throw new Error(error);
   }
 }
 

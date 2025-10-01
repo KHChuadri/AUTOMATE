@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { Socket } from 'socket.io';
 import dotenv from "dotenv";
-import { GenerateMermaidDiagram } from './openAI';
+// import { GenerateMermaidDiagram } from './openAI';
 
 dotenv.config();
 
@@ -25,7 +25,7 @@ export const createAssemblyAIConnection = (socket: Socket): Promise<WebSocket> =
       sample_rate: '16000',
       format_turns: 'true'
     });
-    console.log(ASSEMBLYAI_API_KEY)
+
     const assemblyUrl = `wss://streaming.assemblyai.com/v3/ws?${params.toString()}`;
     
     // Connect to AssemblyAI WebSocket
@@ -83,7 +83,7 @@ const handleAssemblyAIMessage = (message: AssemblyAIMessage, socket: Socket) => 
     // Send partial or final transcript to frontend
     if (isFormatted && endOfTurn) {
       console.log('Final transcript:', transcript);
-      GenerateMermaidDiagram(transcript);
+      // GenerateMermaidDiagram(transcript);
       // count ++ if count = 0 erase history and create a new dr
       //else continue from previous prompts
       socket.emit('transcript', { text: transcript, final: true });
