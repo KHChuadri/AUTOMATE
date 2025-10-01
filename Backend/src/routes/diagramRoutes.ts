@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase";
 import { Router } from "express";
+import { GenerateMermaidDiagram } from "../services/openAI";
 
 const router = Router();
 
@@ -136,6 +137,20 @@ router.post("/diagram/fetch-all", async (req, res) => {
   } catch (error) {
     console.error("Fetch diagrams error:", error);
     return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/diagram/generate-diagram", async (req, res) => {
+  const { prompt } = req.body;
+  try {
+    const response = await GenerateMermaidDiagram(prompt);
+    return res.status(200).json({
+      success: true,
+      mermaidCode: response
+    });
+  } catch (err) {
+    console.error("Fetch diagrams error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 

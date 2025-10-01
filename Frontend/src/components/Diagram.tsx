@@ -57,7 +57,7 @@ const Diagram: React.FC<DiagramProps> = ({ id, title, created_at, last_edited })
 
       <div className='flex justify-center gap-4 items-center'>
         <button 
-          onClick={() => navigate(`/diagram/${id}`)}
+          onClick={() => navigate(`/record/${id}`)}
           className='w-1/2 h-full bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-center text-white text-md font-semibold px-4 py-2 transition-colors'
         >
           View

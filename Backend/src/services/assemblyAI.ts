@@ -25,7 +25,7 @@ export const createAssemblyAIConnection = (socket: Socket): Promise<WebSocket> =
       sample_rate: '16000',
       format_turns: 'true'
     });
-    console.log(ASSEMBLYAI_API_KEY)
+
     const assemblyUrl = `wss://streaming.assemblyai.com/v3/ws?${params.toString()}`;
     
     // Connect to AssemblyAI WebSocket

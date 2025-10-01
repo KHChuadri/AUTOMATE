@@ -43,7 +43,7 @@ function App() {
               }
             />
             <Route
-              path="/record"
+              path="/record/:id"
               element={
                 <ProtectedRoute>
                   <Record />

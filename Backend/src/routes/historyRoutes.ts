@@ -13,7 +13,7 @@ router.post("/diagram/history/create", async (req, res) => {
 
         // Check if user already exists
         const { data, error } = await supabase
-            .from("users")
+            .from("diagram_history")
                 .insert({
                 prompt: prompt,
                 mermaidjs: mermaidjs,
