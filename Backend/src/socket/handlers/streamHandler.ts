@@ -20,7 +20,7 @@ export const handleStreamEvents = (socket: Socket) => {
   });
 
   socket.on('audio-data', (audioBuffer) => {
-    console.log("voices here");
+    // console.log("voices here");
     const session = sessions.get(socket.id);
     if (session?.assemblySocket?.readyState === WebSocket.OPEN) {
       // Send raw binary audio data (Buffer) to AssemblyAI
