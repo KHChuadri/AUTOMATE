@@ -4,7 +4,7 @@ const router = Router();
 
 router.post("/diagram/history/create", async (req, res) => {
     try {
-        let {diagramId, prompt, mermaidjs } = req.body;
+        let { diagramId, prompt, mermaidjs } = req.body;
 
         // Validate input
         if (!diagramId || !prompt || !mermaidjs) {
@@ -70,3 +70,5 @@ router.post("/diagram/history/fetch", async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 });
+
+export default router;

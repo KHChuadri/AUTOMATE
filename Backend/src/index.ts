@@ -6,6 +6,8 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { initializeSocketHandlers } from './socket/socketHandler';
 import authRoutes from './routes/authRoutes';
+import diagramRoutes from './routes/diagramRoutes';
+import historyRoutes from './routes/historyRoutes';
 
 dotenv.config();
 
@@ -21,7 +23,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/', authRoutes)
+app.use('/', authRoutes);
+app.use('/', diagramRoutes);
+app.use('/', historyRoutes);
 
 // Socket.IO setup
 const io = new Server(httpServer, {

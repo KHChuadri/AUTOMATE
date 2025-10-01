@@ -11,6 +11,10 @@ function Record() {
   const [isListening, setIsListening] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [liveCaption, setLiveCaption] = useState("");
+  const [diagramId] = useState(() => {
+    // Generate or retrieve diagram ID (could be from localStorage or props)
+    return localStorage.getItem('diagramId') || `diagram_${Date.now()}`;
+  });
 
   // Add refs to track state immediately
   const isListeningRef = useRef(false);
@@ -19,7 +23,7 @@ function Record() {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
   // Sample prompt-diagram pairs
-  const [diagramPairs] = useState([
+  const [diagramPairs, setDiagramPairs] = useState([
     {
       prompt: "Create a simple flowchart",
       diagram: `graph TD
@@ -37,6 +41,7 @@ function Record() {
     System-->>User: Access Granted`
     }
   ]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const [currentDiagram, setCurrentDiagram] = useState(`graph TD
     A[Start Recording] --> B[Speak Your Prompt]
@@ -49,6 +54,66 @@ function Record() {
 
   const mermaidRef = useRef<HTMLDivElement>(null);
 
+  // Save diagram history to backend
+  const saveDiagramHistory = async (prompt: string, mermaidjs: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/diagram/history/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          diagramId,
+          prompt,
+          mermaidjs,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Diagram history saved:', data);
+        // Refresh history after saving
+        fetchDiagramHistory();
+      } else {
+        console.error('Failed to save diagram history:', data.error);
+      }
+    } catch (error) {
+      console.error('Error saving diagram history:', error);
+    }
+  };
+
+  // Fetch diagram history from backend
+  const fetchDiagramHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch('http://localhost:3001/diagram/history/fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          diagramId,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.history) {
+        // Update diagram pairs with fetched history
+        setDiagramPairs(data.history.map((item: any) => ({
+          prompt: item.prompt,
+          diagram: item.mermaidjs,
+          createdAt: item.created_at,
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching diagram history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Initialize Mermaid
   useEffect(() => {
     mermaid.initialize({
@@ -57,6 +122,12 @@ function Record() {
       securityLevel: 'loose',
       fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     });
+
+    // Store diagramId in localStorage for future sessions
+    localStorage.setItem('diagramId', diagramId);
+
+    // Fetch diagram history on component mount
+    fetchDiagramHistory();
   }, []);
 
   // Re-render Mermaid diagram when currentDiagram changes
@@ -98,6 +169,13 @@ function Record() {
       console.log("Transcript:", data.text);
       setTranscript((prev) => [...prev, data.text]);
       setLiveCaption(""); // Clear live caption when final transcript arrives
+      
+      // Save to backend when we get a final transcript
+      if (data.text) {
+        // For now, save with the current diagram
+        // In a production app, you might want to generate a new diagram based on the prompt
+        saveDiagramHistory(data.text, currentDiagram);
+      }
     });
 
     newSocket.on("partial-transcript", (data) => {
@@ -217,6 +295,17 @@ function Record() {
               </pre>
             </div>
           ))}
+          
+          {transcript.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Current Session</h3>
+              {transcript.map((text, i) => (
+                <div key={i} className="mb-2 p-2 bg-blue-50 rounded text-xs text-gray-700">
+                  {text}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -320,18 +409,7 @@ function Record() {
                       <circle cx="12" cy="12" r="10" />
                     </svg>
                     Listening for your diagram prompt...
-                    {liveCaption}
                   </p>
-                </div>
-              )}
-              {transcript.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-bold text-gray-700 mb-2">Current Session</h3>
-                  {transcript.map((text, i) => (
-                    <div key={i} className="mb-2 p-2 bg-blue-50 rounded text-xs text-gray-700">
-                      {text}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
