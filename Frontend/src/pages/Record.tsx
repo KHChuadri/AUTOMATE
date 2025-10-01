@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { Buffer } from "buffer";
+import Navbar from "./Navbar";
 
 function Record() {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -64,7 +65,7 @@ function Record() {
 
       // Create audio context
       const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)({
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({
           sampleRate: 16000,
         });
       audioContextRef.current = audioContext;
@@ -133,58 +134,107 @@ function Record() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">WebSocket Test</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <Navbar>
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold bg-gradient-to-br from-gray-900 to-purple-600 bg-clip-text text-transparent mb-4">
+              Live Recording Session
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Start recording to capture and transcribe your conversation in real-time
+            </p>
+          </div>
 
-        <div className="mb-6 p-4 bg-gray-800 rounded">
-          <p className="text-sm text-gray-400">Connection Status:</p>
-          <p
-            className={`font-semibold ${isConnected ? "text-green-400" : "text-red-400"
-              }`}
-          >
-            {isConnected ? "✓ Connected" : "✗ Disconnected"}
-          </p>
-        </div>
+          {/* Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`}></div>
+                <h3 className="text-lg font-semibold text-gray-900">Connection Status</h3>
+              </div>
+              <p className={`text-sm font-medium ${isConnected ? "text-green-600" : "text-red-600"}`}>
+                {isConnected ? "✓ Connected to server" : "✗ Disconnected"}
+              </p>
+            </div>
 
-        <div className="mb-6 p-4 bg-gray-800 rounded">
-          <p className="text-sm text-gray-400">Status:</p>
-          <p className="font-semibold text-blue-400">{status}</p>
-        </div>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className={`w-3 h-3 rounded-full ${isListening ? "bg-blue-500 animate-pulse" : "bg-gray-400"}`}></div>
+                <h3 className="text-lg font-semibold text-gray-900">Recording Status</h3>
+              </div>
+              <p className="text-sm font-medium text-blue-600">{status}</p>
+            </div>
+          </div>
 
-        <div className="mb-6 flex gap-4">
-          <button
-            onClick={startListening}
-            disabled={!isConnected || isListening}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded font-semibold"
-          >
-            Start Listening
-          </button>
+          {/* Control Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <button
+              onClick={startListening}
+              disabled={!isConnected || isListening}
+              className="group bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-8 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+            >
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                {isListening ? "Recording..." : "Start Recording"}
+              </span>
+            </button>
 
-          <button
-            onClick={stopListening}
-            disabled={!isListening}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 rounded font-semibold"
-          >
-            Stop
-          </button>
-        </div>
+            <button
+              onClick={stopListening}
+              disabled={!isListening}
+              className="group bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-8 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+            >
+              <span className="flex items-center justify-center">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Stop Recording
+              </span>
+            </button>
+          </div>
 
-        <div className="p-4 bg-gray-800 rounded">
-          <h2 className="text-xl font-bold mb-4">Transcript:</h2>
-          <div className="space-y-2">
-            {transcript.length === 0 ? (
-              <p className="text-gray-500 italic">No transcript yet...</p>
-            ) : (
-              transcript.map((text, i) => (
-                <div key={i} className="p-3 bg-gray-700 rounded">
-                  {text}
+          {/* Transcript Section */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-100 to-purple-200 px-6 py-4 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                <svg className="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Live Transcript
+              </h3>
+            </div>
+            <div className="p-6 max-h-96 overflow-y-auto">
+              {transcript.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                  <p className="text-gray-500 text-lg">No transcript yet...</p>
+                  <p className="text-gray-400 text-sm mt-2">Start recording to see your conversation transcribed here</p>
                 </div>
-              ))
-            )}
+              ) : (
+                <div className="space-y-4">
+                  {transcript.map((text, i) => (
+                    <div key={i} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100 shadow-sm">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                          {i + 1}
+                        </div>
+                        <p className="text-gray-800 leading-relaxed">{text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </Navbar>
     </div>
   );
 }
