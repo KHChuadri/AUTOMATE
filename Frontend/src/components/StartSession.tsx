@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiPost } from "../lib/api";
 
+interface ApiError {
+  message?: string;
+  error?: string;
+}
+
 const StartSession: React.FC = () => {
   const navigate = useNavigate();
   const [sessionName, setSessionName] = useState("");
@@ -28,10 +33,9 @@ const StartSession: React.FC = () => {
       const response = await apiPost("/diagram/create", { title: sessionName, userId: userId });
       navigate("/dashboard");
       console.log("Session created:", response);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating session:", err);
-      setError(err?.message || "Failed to create session");
-      setError(err?.message);
+      setError((err as ApiError).message || "Failed to create session");
     }
   };
 

@@ -123,14 +123,11 @@ function Record() {
       fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     });
 
-    // Store diagramId in localStorage for future sessions
     localStorage.setItem('diagramId', diagramId);
 
-    // Fetch diagram history on component mount
     fetchDiagramHistory();
   }, []);
 
-  // Re-render Mermaid diagram when currentDiagram changes
   useEffect(() => {
     const renderDiagram = async () => {
       if (mermaidRef.current) {
@@ -168,9 +165,9 @@ function Record() {
     newSocket.on("transcript", (data) => {
       console.log("Transcript:", data.text);
       setTranscript((prev) => [...prev, data.text]);
-      setLiveCaption(""); // Clear live caption when final transcript arrives
+      setLiveCaption("");
       
-      // Save to backend when we get a final transcript
+
       if (data.text) {
         // For now, save with the current diagram
         // In a production app, you might want to generate a new diagram based on the prompt

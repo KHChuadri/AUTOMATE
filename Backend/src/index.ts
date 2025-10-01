@@ -23,9 +23,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/', authRoutes);
-app.use('/', diagramRoutes);
-app.use('/', historyRoutes);
+app.use('/', authRoutes)
+app.use('/', diagramRoutes)
+app.use('/', historyRoutes)
 
 // Socket.IO setup
 const io = new Server(httpServer, {

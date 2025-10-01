@@ -60,7 +60,7 @@ router.post("/diagram/create", async (req, res) => {
   }
 });
 
-router.post("/diagram/fetch", async (req, res) => {
+router.get("/diagram/fetch", async (req, res) => {
   try {
     let { userId, diagramId } = req.body;
 
@@ -105,6 +105,36 @@ router.post("/diagram/fetch", async (req, res) => {
     });
   } catch (error) {
     console.error("Session Creation Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/diagram/fetch-all", async (req, res) => {
+  try {
+    let { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // Fetch all diagrams for this user
+    const { data, error } = await supabase
+      .from("diagrams")
+      .select("id, title, created_at")
+      .eq("owner", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Fetch error:", error);
+      return res.status(500).json({ error: "Failed to fetch diagrams" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      diagrams: data || [],
+    });
+  } catch (error) {
+    console.error("Fetch diagrams error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
