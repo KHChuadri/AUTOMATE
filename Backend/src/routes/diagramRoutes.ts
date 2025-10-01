@@ -1,135 +1,100 @@
 import { supabase } from "../config/supabase";
 import { Router } from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
 const router = Router();
 
-// JWT secret - in production, this should be in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-router.post("/auth/register", async (req, res) => {
+router.post("/diagram/create", async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        let { title, diagram_information, userId} = req.body;
 
         // Validate input
-        if (!name || !email || !password) {
-            return res.status(400).json({ error: "Name, email, and password are required" });
+        if (!title || !userId) {
+            return res.status(400).json({ error: "Title, descriotion, and owner are required" });
+        }
+        if (!diagram_information) {
+            diagram_information = "";
         }
 
         // Check if user already exists
         const { data: existingUser, error: checkError } = await supabase
             .from("users")
-            .select("email")
-            .eq("email", email)
+            .select("id")
+            .eq("id", userId)
             .maybeSingle();
 
         if (checkError) {
             return res.status(500).json({ error: "Database error" });
         }
 
-        if (existingUser) {
-            return res.status(400).json({ error: "Email already registered!" });
+        if (!existingUser) {
+            return res.status(400).json({ error: "Creator not found!" });
         }
 
-        // Hash password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // Insert new user
+        // Insert new diagram
         const { data, error } = await supabase
-            .from("users")
+        .from("diagrams")
             .insert({
-                name: name,
-                email: email,
-                password: hashedPassword
+                title: title,
+                diagram_information: diagram_information,
             })
             .select();
-
-        if (error) {
-            return res.status(500).json({ error: "Failed to create user" });
-        }
-
-        const token = jwt.sign(
-            { 
-                userId: data[0].id, 
-                email: data[0].email 
-            },
-            JWT_SECRET,
-            { expiresIn: "24h" }
-        );
+            
+            if (error) {
+                return res.status(500).json({ error: "Failed to create diagram" });
+            }
 
         return res.status(201).json({ 
             success: true, 
-            message: "User registered successfully",
-            user: { id: data[0].id, name: data[0].name, email: data[0].email },
-            token: token
+            message: "Diagram created successfully",
+            diagram: { id: data[0].id, title: data[0].title, diagram_information: data[0].diagram_information },
         });
     } catch (error) {
-        console.error("Registration error:", error);
+        console.error("Session Creation Error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
 
-router.post("/diagram/create", async (req, res) => {
+router.post("/diagram/fetch", async (req, res) => {
     try {
-        const { title, description, owner } = req.body;
+        let { userId, diagramId } = req.body;
 
         // Validate input
-        if (!title || !description || !owner) {
-            return res.status(400).json({ error: "Title, descriotion, and owner are required" });
+        if (!userId || !diagramId) {
+            return res.status(400).json({ error: "Owner or Diagram not valid" });
         }
 
         // Check if user already exists
-        const { data: existingUser, error: checkError } = await supabase
-            .from("users")
-            .select("email")
-            .eq("email", email)
+        const { data: matchPerms, error: checkError } = await supabase
+            .from("diagrams")
+            .select("owner")
+            .eq("owner", userId)
             .maybeSingle();
 
         if (checkError) {
             return res.status(500).json({ error: "Database error" });
         }
 
-        if (existingUser) {
-            return res.status(400).json({ error: "Email already registered!" });
+        if (!matchPerms) {
+            return res.status(400).json({ error: "Owner does not match!" });
         }
 
-        // Hash password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // Insert new user
+        // Insert new diagram
         const { data, error } = await supabase
-            .from("users")
-            .insert({
-                name: name,
-                email: email,
-                password: hashedPassword
-            })
-            .select();
+            .from("diagrams")
+            .select("id, title, diagram_information, history")
+            .eq("id", diagramId)
+            .maybeSingle();
 
-        if (error) {
-            return res.status(500).json({ error: "Failed to create user" });
+        if (!data ||error) {
+            return res.status(500).json({ error: "Failed to fetch diagram" });
         }
-
-        const token = jwt.sign(
-            { 
-                userId: data[0].id, 
-                email: data[0].email 
-            },
-            JWT_SECRET,
-            { expiresIn: "24h" }
-        );
 
         return res.status(201).json({ 
             success: true, 
-            message: "User registered successfully",
-            user: { id: data[0].id, name: data[0].name, email: data[0].email },
-            token: token
+            message: "Diagram fetched successfully",
+            diagram: { id: data[0].id, title: data[0].title, diagram_information: data[0].diagram_information},
         });
     } catch (error) {
-        console.error("Registration error:", error);
+        console.error("Session Creation Error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
