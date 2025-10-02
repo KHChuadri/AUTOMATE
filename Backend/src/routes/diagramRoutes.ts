@@ -141,9 +141,9 @@ router.post("/diagram/fetch-all", async (req, res) => {
 });
 
 router.post("/diagram/generate-diagram", async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, previousDiagram } = req.body;
   try {
-    const response = await GenerateMermaidDiagram(prompt);
+    const response = await GenerateMermaidDiagram(prompt, previousDiagram);
     return res.status(200).json({
       success: true,
       mermaidCode: response
