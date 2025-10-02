@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { AuthContext } from './AuthContext'
 import { apiPost } from '../lib/api'
 import type { NavigateFunction } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, navigate }
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  // const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token')
@@ -21,13 +22,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, navigate }
       setToken(storedToken)
       try {
         setUser(JSON.parse(storedUser))
-        navigate('/dashboard')
+
+        // rredirect to dashboard if user is on a public route
+        const publicRoutes = ['/', '/login', '/register']
+        if (publicRoutes.includes(location.pathname)) {
+          navigate('/dashboard')
+        }
       } catch {
         setUser(null)
       }
     }
     setLoading(false)
-  }, [navigate])
+  }, [navigate, location.pathname])
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
@@ -56,7 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, navigate }
         '/auth/login',
         { email, password }
       )
-      
+
       if (res.error) return { error: new Error(res.error) }
       if (res.token && res.user) {
         localStorage.setItem('auth_token', res.token)
