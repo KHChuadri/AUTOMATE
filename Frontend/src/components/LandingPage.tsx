@@ -4,7 +4,6 @@ import Navbar from '../pages/Navbar'
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate()
-
   useEffect(() => {
     if (localStorage.getItem("auth_token")) {
       navigate('/dashboard');
