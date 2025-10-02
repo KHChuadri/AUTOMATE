@@ -193,7 +193,7 @@ function Record() {
       debouncedProcessRef.current = debounce(() => {
         console.log("Debounced process triggered - processing accumulated text");
         processAccumulatedText();
-      }, 5000); // Increased to 5 seconds for natural speech pauses
+      }, 3000); // Increased to 5 seconds for natural speech pauses
     }
     
     return () => {
