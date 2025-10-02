@@ -184,18 +184,22 @@ function Record() {
     });
   }, []);
 
-  const debouncedProcessRef = useRef(
-    debounce(() => {
-      console.log("debounceProcess called");
-      processAccumulatedText();
-    }, 5000)
-  );
+  const debouncedProcessRef = useRef<{ (): void; cancel(): void; flush(): void } | null>(null);
 
+  // Initialize debounce function once and keep it stable
   useEffect(() => {
-    debouncedProcessRef.current = debounce(() => {
-      processAccumulatedText();
-    }, 5000);
-  }, [processAccumulatedText]);
+    // Only create if it doesn't exist
+    if (!debouncedProcessRef.current) {
+      debouncedProcessRef.current = debounce(() => {
+        console.log("Debounced process triggered - processing accumulated text");
+        processAccumulatedText();
+      }, 5000); // Increased to 5 seconds for natural speech pauses
+    }
+    
+    return () => {
+      debouncedProcessRef.current?.cancel();
+    };
+  }, []); // Empty dependency array - only run once
 
   // Save diagram history - use useCallback to memoize
   const saveDiagramHistory = useCallback(
@@ -286,7 +290,7 @@ function Record() {
 
       if (data.text) {
         accumulatedText.current.push(data.text);
-        debouncedProcessRef.current(); // Use ref instead
+        debouncedProcessRef.current?.(); // Safe call with null check
       }
     });
 
@@ -297,7 +301,7 @@ function Record() {
 
     return () => {
       newSocket.close();
-      debouncedProcessRef.current.cancel();
+      debouncedProcessRef.current?.cancel();
     };
   }, []); 
 
@@ -379,8 +383,8 @@ function Record() {
 
     setIsListening(false);
     
-    // Process any remaining text
-    debouncedProcessRef.current.flush();
+    // Process any remaining text immediately when stopping
+    debouncedProcessRef.current?.flush();
   };
 
   return (
