@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { FaPlus } from "react-icons/fa6"
-import { SlCamrecorder } from "react-icons/sl"
 import Diagram from "../components/Diagram"
 import Navbar from './Navbar'
 import { fetchUserDiagrams, type Diagram as DiagramType } from '../lib/api'
+import StartSessionModal from '../components/StartSession'
 
 const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
   const [userId, setUserId] = useState("");
   const [userName, setUserName] = useState("");
+  const [isCreatingNewDiagram, setIsCreatingNewDiagram] = useState(false);
 
   useEffect(() => {
     const authUser = localStorage.getItem("auth_user");
@@ -25,13 +24,19 @@ const Dashboard: React.FC = () => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['diagrams', userId],
     queryFn: () => fetchUserDiagrams(userId),
-    enabled: !!userId, // Only run query when userId is available
+    enabled: !!userId,
   });
 
+  useEffect(() => {
+    if (!isCreatingNewDiagram) {
+      refetch();
+    }
+  }, [isCreatingNewDiagram])
+
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
       <Navbar>
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8 flex flex-col gap-5">
           <div className="flex flex-col gap-1.5 mt-3 mb-2">
             <h2 className="text-6xl font-bold from-blue-600 to-purple-600">{`Welcome Back, ${userName ? userName.charAt(0).toUpperCase() + userName.slice(1) : 'User'}`}</h2>
@@ -41,7 +46,7 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col gap-6">
             <div className="flex flex-row justify-between ">
               <button 
-                onClick={() => navigate('/session/new')} 
+                onClick={() => setIsCreatingNewDiagram(true)} 
                 className="w-1/4 group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105"
               >
                 <span className="flex items-center justify-center gap-3">
@@ -50,15 +55,6 @@ const Dashboard: React.FC = () => {
                 </span>
               </button>
 
-              <button
-                onClick={() => navigate('/record')} 
-                className="w-1/4 group bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105"
-              > 
-                <span className="flex items-center justify-center gap-3">
-                  Record Session
-                  <SlCamrecorder />
-                </span>
-              </button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
@@ -140,6 +136,16 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </Navbar>
+
+      {isCreatingNewDiagram && (
+        <>
+          <div className="fixed inset-0 bg-opacity-40 backdrop-blur-sm z-40"></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <StartSessionModal setCreate={setIsCreatingNewDiagram} onSuccess={() => refetch()} />
+          </div>
+        </>
+      )}
+
     </div>
   )
 }
