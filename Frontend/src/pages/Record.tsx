@@ -217,21 +217,56 @@ function Record() {
    */
   useEffect(() => {
     const renderDiagram = async () => {
-      if (mermaidRef.current) {
-        try {
-          mermaidRef.current.innerHTML = currentDiagram;
-          mermaidRef.current.removeAttribute("data-processed");
-          await mermaid.run({
-            nodes: [mermaidRef.current],
-          });
-        } catch (error) {
-          console.error("Mermaid rendering error:", error);
-          mermaidRef.current.innerHTML = `<div class="text-red-600 p-4">Error rendering diagram. Please check the syntax.</div>`;
+      console.log(mermaidRef.current, "mermaidRef");
+      
+      // Wait for DOM to be ready
+      if (!mermaidRef.current || !currentDiagram) {
+        return;
+      }
+
+      try {
+        // Clear any existing content
+        mermaidRef.current.innerHTML = '';
+        
+        // Remove any existing data-processed attribute
+        mermaidRef.current.removeAttribute('data-processed');
+        
+        // Validate diagram syntax (basic check)
+        if (!currentDiagram.trim()) {
+          throw new Error('Empty diagram content');
         }
+
+        // Generate unique ID for this diagram
+        const diagramElementId = `mermaid-${Date.now()}`;
+        
+        // Use mermaid.render instead of mermaid.run for better control
+        const { svg } = await mermaid.render(diagramElementId, currentDiagram);
+        
+        // Insert the rendered SVG
+        mermaidRef.current.innerHTML = svg;
+        
+      } catch (error) {
+        console.error("Mermaid rendering error:", error);
+        
+        // Show user-friendly error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        mermaidRef.current.innerHTML = `
+          <div class="text-red-600 p-4 border border-red-300 rounded-lg bg-red-50">
+            <h4 class="font-semibold mb-2">Diagram Rendering Error</h4>
+            <p class="text-sm">${errorMessage}</p>
+            <details class="mt-2">
+              <summary class="text-xs cursor-pointer">Show diagram code</summary>
+              <pre class="text-xs mt-2 p-2 bg-gray-100 rounded overflow-auto">${currentDiagram}</pre>
+            </details>
+          </div>
+        `;
       }
     };
 
-    renderDiagram();
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(renderDiagram, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [currentDiagram]);
 
   /**

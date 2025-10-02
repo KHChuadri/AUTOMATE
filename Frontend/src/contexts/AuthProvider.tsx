@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { AuthContext } from './AuthContext'
 import { apiPost } from '../lib/api'
+import type { NavigateFunction } from 'react-router-dom'
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+  navigate: NavigateFunction;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, navigate }) => {
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // const navigate = useNavigate()
 
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token')
@@ -14,12 +21,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(storedToken)
       try {
         setUser(JSON.parse(storedUser))
+        navigate('/dashboard')
       } catch {
         setUser(null)
       }
     }
     setLoading(false)
-  }, [])
+  }, [navigate])
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
