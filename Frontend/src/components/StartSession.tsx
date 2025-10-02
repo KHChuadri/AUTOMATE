@@ -30,9 +30,8 @@ const StartSession: React.FC = () => {
       return;
     }
     try {
-      const response = await apiPost("/diagram/create", { title: sessionName, userId: userId });
+      await apiPost("/diagram/create", { title: sessionName, userId: userId });
       navigate("/dashboard");
-      console.log("Session created:", response);
     } catch (err: unknown) {
       console.error("Error creating session:", err);
       setError((err as ApiError).message || "Failed to create session");
@@ -40,7 +39,7 @@ const StartSession: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br p-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

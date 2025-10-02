@@ -1,9 +1,15 @@
-import React from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../pages/Navbar'
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (localStorage.getItem("auth_token")) {
+      navigate('/dashboard');
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
