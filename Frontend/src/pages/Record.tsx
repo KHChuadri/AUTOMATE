@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import PQueue from "p-queue";
 import { debounce } from "lodash";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
@@ -39,12 +40,19 @@ function Record() {
   const [isListening, setIsListening] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
   const [diagramId] = useState(() => {
     return id || localStorage.getItem("diagramId") || `diagram_${Date.now()}`;
   });
 
   const [diagramPairs, setDiagramPairs] = useState<DiagramPair[]>([]);
+  const diagramPairsRef = useRef<DiagramPair[]>([]);
+
+  useEffect(() => {
+    console.log("diagramPairs state updated:", diagramPairs);
+    diagramPairsRef.current = diagramPairs;
+  }, [diagramPairs]);
   const [currentDiagram, setCurrentDiagram] = useState(`graph TD
     A[Start Recording] --> B[Speak Your Prompt]
     B --> C[AI Processes Audio]
@@ -71,6 +79,7 @@ function Record() {
         `${API_BASE_URL}/diagram/history/fetch`,
         { diagramId }
       );
+
       return response.data;
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -84,36 +93,55 @@ function Record() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["history", diagramId],
-    queryFn: () => fetchPromptHistory(diagramId),
+    queryFn: () => {
+      return fetchPromptHistory(diagramId);
+    },
     enabled: !!diagramId,
   });
 
   // Update diagramPairs when data is fetched
   useEffect(() => {
-    if (data?.success && data.history) {
-      setDiagramPairs(
-        data.history.map((item) => ({
-          prompt: item.prompt,
-          diagram: item.mermaidjs,
-          createdAt: item.created_at,
-        }))
-      );
+    if (data?.success) {
+      if (data.history && data.history.length > 0) {
+        setDiagramPairs(
+          data.history.map((item) => ({
+            prompt: item.prompt,
+            diagram: item.mermaidjs,
+            createdAt: item.created_at,
+          }))
+        );
+      } else {
+        setDiagramPairs([]);
+      }
     }
   }, [data]);
 
   const generateDiagram = async (prompt: string): Promise<string> => {
-    console.log("generateDiagram called")
+    console.log("generateDiagram called, lastDiagram", diagramPairsRef.current);
     try {
+      // Get the last diagram from history to provide context
+      const lastDiagram =
+        diagramPairsRef.current.length > 0
+          ? diagramPairsRef.current[0].diagram
+          : null;
+
+      if (lastDiagram) {
+        console.log("Using previous diagram as context for iterative building");
+      } else {
+        console.log("Creating new diagram from scratch");
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/diagram/generate-diagram`,
         {
           prompt,
           diagramId,
+          previousDiagram: lastDiagram,
         }
       );
 
       if (response.data.success && response.data.mermaidCode) {
-        console.log('OpenAI Response:', response.data.mermaidCode);
+        console.log("OpenAI Response:", response.data.mermaidCode);
         return response.data.mermaidCode;
       }
       throw new Error("Failed to generate diagram");
@@ -124,51 +152,55 @@ function Record() {
   };
 
   const processAccumulatedText = useCallback(() => {
-    console.log("processAccumulatedText called")
+    console.log("processAccumulatedText called");
     if (accumulatedText.current.length === 0) return;
-    console.log("accumulatedText is not 0 in length")
+    console.log("accumulatedText is not 0 in length");
+    
     const fullContext = accumulatedText.current.join(" ");
     const promptToProcess = fullContext;
-
     accumulatedText.current = [];
 
     aiQueue.current.add(async () => {
       setIsProcessing(true);
-      setStatus("Generating diagram...");
+      const hasContext = diagramPairsRef.current.length > 0;
+      setStatus(hasContext ? "Generating diagram with context..." : "Generating diagram...");
 
       try {
         const mermaidCode = await generateDiagram(promptToProcess);
         setCurrentDiagram(mermaidCode);
-
-        // Save to history after successful generation
         await saveDiagramHistory(promptToProcess, mermaidCode);
-
         setStatus("Diagram generated!");
       } catch (error) {
         console.error("Failed to generate diagram:", error);
         setStatus("Failed to generate diagram");
       } finally {
         setIsProcessing(false);
-
-        // Reset status after a delay
         setTimeout(() => {
-          if (isListening) {
-            setStatus("Listening...");
-          } else {
-            setStatus("Connected");
-          }
+          setStatus((prev) => {
+            // Use functional update to avoid dependency on isListening
+            return isListeningRef.current ? "Listening..." : "Connected";
+          });
         }, 2000);
       }
     });
-  }, [diagramId, isListening]);
+  }, []);
 
-  const debouncedProcess = useCallback(
-    debounce(() => {
-      console.log("debounceProcess called")
-      processAccumulatedText();
-    }, 5000),
-    [processAccumulatedText]
-  );
+  const debouncedProcessRef = useRef<{ (): void; cancel(): void; flush(): void } | null>(null);
+
+  // Initialize debounce function once and keep it stable
+  useEffect(() => {
+    // Only create if it doesn't exist
+    if (!debouncedProcessRef.current) {
+      debouncedProcessRef.current = debounce(() => {
+        console.log("Debounced process triggered - processing accumulated text");
+        processAccumulatedText();
+      }, 3000); // Increased to 5 seconds for natural speech pauses
+    }
+    
+    return () => {
+      debouncedProcessRef.current?.cancel();
+    };
+  }, []); // Empty dependency array - only run once
 
   // Save diagram history - use useCallback to memoize
   const saveDiagramHistory = useCallback(
@@ -185,6 +217,7 @@ function Record() {
 
         if (response.data.success) {
           console.log("Diagram history saved:", response.data);
+          console.log("Calling refetch to update history...");
           refetch();
         } else {
           console.error("Failed to save diagram history:", response.data.error);
@@ -217,21 +250,56 @@ function Record() {
    */
   useEffect(() => {
     const renderDiagram = async () => {
-      if (mermaidRef.current) {
-        try {
-          mermaidRef.current.innerHTML = currentDiagram;
-          mermaidRef.current.removeAttribute("data-processed");
-          await mermaid.run({
-            nodes: [mermaidRef.current],
-          });
-        } catch (error) {
-          console.error("Mermaid rendering error:", error);
-          mermaidRef.current.innerHTML = `<div class="text-red-600 p-4">Error rendering diagram. Please check the syntax.</div>`;
+      console.log(mermaidRef.current, "mermaidRef");
+
+      // Wait for DOM to be ready
+      if (!mermaidRef.current || !currentDiagram) {
+        return;
+      }
+
+      try {
+        // Clear any existing content
+        mermaidRef.current.innerHTML = '';
+
+        // Remove any existing data-processed attribute
+        mermaidRef.current.removeAttribute('data-processed');
+
+        // Validate diagram syntax (basic check)
+        if (!currentDiagram.trim()) {
+          throw new Error('Empty diagram content');
         }
+
+        // Generate unique ID for this diagram
+        const diagramElementId = `mermaid-${Date.now()}`;
+
+        // Use mermaid.render instead of mermaid.run for better control
+        const { svg } = await mermaid.render(diagramElementId, currentDiagram);
+
+        // Insert the rendered SVG
+        mermaidRef.current.innerHTML = svg;
+
+      } catch (error) {
+        console.error("Mermaid rendering error:", error);
+
+        // Show user-friendly error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        mermaidRef.current.innerHTML = `
+          <div class="text-red-600 p-4 border border-red-300 rounded-lg bg-red-50">
+            <h4 class="font-semibold mb-2">Diagram Rendering Error</h4>
+            <p class="text-sm">${errorMessage}</p>
+            <details class="mt-2">
+              <summary class="text-xs cursor-pointer">Show diagram code</summary>
+              <pre class="text-xs mt-2 p-2 bg-gray-100 rounded overflow-auto">${currentDiagram}</pre>
+            </details>
+          </div>
+        `;
       }
     };
 
-    renderDiagram();
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(renderDiagram, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [currentDiagram]);
 
   /**
@@ -258,7 +326,7 @@ function Record() {
 
       if (data.text) {
         accumulatedText.current.push(data.text);
-        debouncedProcess();
+        debouncedProcessRef.current?.(); // Safe call with null check
       }
     });
 
@@ -269,8 +337,9 @@ function Record() {
 
     return () => {
       newSocket.close();
+      debouncedProcessRef.current?.cancel();
     };
-  }, [saveDiagramHistory, currentDiagram]);
+  }, []); 
 
   const startListening = async () => {
     if (!socket) return;
@@ -290,8 +359,8 @@ function Record() {
       const audioContext = new (window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext })
           .webkitAudioContext)({
-        sampleRate: 16000,
-      });
+            sampleRate: 16000,
+          });
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
@@ -349,15 +418,75 @@ function Record() {
     }
 
     setIsListening(false);
+    
+    // Process any remaining text immediately when stopping
+    debouncedProcessRef.current?.flush();
   };
+
+  const handleBack = () => {
+    navigate('/dashboard');
+  }
+
+  const handleExport = () => {
+    if (!mermaidRef.current) {
+      alert('No diagram to export');
+      return;
+    }
+
+    // Get the SVG element from the rendered diagram
+    const svgElement = mermaidRef.current.querySelector('svg');
+    if (!svgElement) {
+      alert('No diagram rendered to export');
+      return;
+    }
+
+    try {
+      // Clone the SVG to avoid modifying the original
+      const svgClone = svgElement.cloneNode(true) as SVGElement;
+      
+      // Add XML namespace and other attributes for standalone SVG
+      svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svgClone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      
+      // Get the SVG content as string
+      const svgData = new XMLSerializer().serializeToString(svgClone);
+      
+      // Create blob and download
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `diagram-${diagramId}-${Date.now()}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setStatus('Diagram exported successfully!');
+      setTimeout(() => {
+        if (isListening) {
+          setStatus("Listening...");
+        } else {
+          setStatus("Connected");
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export diagram. Please try again.');
+    }
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } transition-all duration-300 bg-white border-r border-gray-200 overflow-hidden flex flex-col`}
+        className={`${sidebarOpen ? "w-80" : "w-0"
+          } transition-all duration-300 bg-white border-r border-gray-200 overflow-hidden flex flex-col`}
       >
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
           <h2 className="text-lg font-bold text-gray-800 flex items-center">
@@ -404,7 +533,6 @@ function Record() {
         </div>
       </div>
 
-      {/* Rest of the component remains the same */}
       {/* Toggle Sidebar Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -412,9 +540,8 @@ function Record() {
         style={{ left: sidebarOpen ? "320px" : "0" }}
       >
         <svg
-          className={`w-5 h-5 text-gray-600 transition-transform ${
-            sidebarOpen ? "" : "rotate-180"
-          }`}
+          className={`w-5 h-5 text-gray-600 transition-transform ${sidebarOpen ? "" : "rotate-180"
+            }`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -444,9 +571,8 @@ function Record() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                 <div
-                  className={`w-2 h-2 rounded-full ${
-                    isConnected ? "bg-green-500" : "bg-red-500"
-                  }`}
+                  className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"
+                    }`}
                 ></div>
                 <span className="text-xs font-medium text-gray-600">
                   {isConnected ? "Connected" : "Disconnected"}
@@ -455,9 +581,8 @@ function Record() {
 
               <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                 <div
-                  className={`w-2 h-2 rounded-full ${
-                    isListening ? "bg-blue-500 animate-pulse" : "bg-gray-400"
-                  }`}
+                  className={`w-2 h-2 rounded-full ${isListening ? "bg-blue-500 animate-pulse" : "bg-gray-400"
+                    }`}
                 ></div>
                 <span className="text-xs font-medium text-gray-600 max-w-xs truncate">
                   {status}
@@ -511,6 +636,26 @@ function Record() {
                 </svg>
                 Stop
               </button>
+
+              <button
+                onClick={handleBack}
+                className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>
@@ -536,11 +681,24 @@ function Record() {
                   Generated Diagram
                 </h2>
                 <div className="flex space-x-2">
-                  <button className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                  <button 
+                    onClick={handleExport}
+                    className="flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
                     Export
-                  </button>
-                  <button className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
-                    Edit
                   </button>
                 </div>
               </div>
@@ -553,13 +711,12 @@ function Record() {
 
               <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                 <div
-                  className={`w-2 h-2 rounded-full ${
-                    isProcessing
-                      ? "bg-yellow-500 animate-pulse"
-                      : isListening
+                  className={`w-2 h-2 rounded-full ${isProcessing
+                    ? "bg-yellow-500 animate-pulse"
+                    : isListening
                       ? "bg-blue-500 animate-pulse"
                       : "bg-gray-400"
-                  }`}
+                    }`}
                 ></div>
                 <span className="text-xs font-medium text-gray-600 max-w-xs truncate">
                   {status}
