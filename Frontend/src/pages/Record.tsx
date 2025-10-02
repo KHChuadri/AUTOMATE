@@ -45,6 +45,13 @@ function Record() {
   });
 
   const [diagramPairs, setDiagramPairs] = useState<DiagramPair[]>([]);
+  const diagramPairsRef = useRef<DiagramPair[]>([]);
+  
+  // Debug: Track diagramPairs changes
+  useEffect(() => {
+    console.log("diagramPairs state updated:", diagramPairs);
+    diagramPairsRef.current = diagramPairs;
+  }, [diagramPairs]);
   const [currentDiagram, setCurrentDiagram] = useState(`graph TD
     A[Start Recording] --> B[Speak Your Prompt]
     B --> C[AI Processes Audio]
@@ -71,6 +78,7 @@ function Record() {
         `${API_BASE_URL}/diagram/history/fetch`,
         { diagramId }
       );
+
       return response.data;
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -84,31 +92,47 @@ function Record() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["history", diagramId],
-    queryFn: () => fetchPromptHistory(diagramId),
+    queryFn: () => {
+      return fetchPromptHistory(diagramId);
+    },
     enabled: !!diagramId,
   });
 
   // Update diagramPairs when data is fetched
   useEffect(() => {
-    if (data?.success && data.history) {
-      setDiagramPairs(
-        data.history.map((item) => ({
-          prompt: item.prompt,
-          diagram: item.mermaidjs,
-          createdAt: item.created_at,
-        }))
-      );
+    if (data?.success) {
+      if (data.history && data.history.length > 0) {
+        setDiagramPairs(
+          data.history.map((item) => ({
+            prompt: item.prompt,
+            diagram: item.mermaidjs,
+            createdAt: item.created_at,
+          }))
+        );
+      } else {
+        setDiagramPairs([]);
+      }
     }
   }, [data]);
 
   const generateDiagram = async (prompt: string): Promise<string> => {
-    console.log("generateDiagram called")
+    console.log("generateDiagram called, lastDiagram", diagramPairsRef.current)
     try {
+      // Get the last diagram from history to provide context
+      const lastDiagram = diagramPairsRef.current.length > 0 ? diagramPairsRef.current[0].diagram : null;
+      
+      if (lastDiagram) {
+        console.log("Using previous diagram as context for iterative building");
+      } else {
+        console.log("Creating new diagram from scratch");
+      }
+      
       const response = await axios.post(
         `${API_BASE_URL}/diagram/generate-diagram`,
         {
           prompt,
           diagramId,
+          previousDiagram: lastDiagram, // Include previous diagram for context
         }
       );
 
@@ -134,7 +158,8 @@ function Record() {
 
     aiQueue.current.add(async () => {
       setIsProcessing(true);
-      setStatus("Generating diagram...");
+      const hasContext = diagramPairsRef.current.length > 0;
+      setStatus(hasContext ? "Generating diagram with context..." : "Generating diagram...");
 
       try {
         const mermaidCode = await generateDiagram(promptToProcess);
@@ -185,6 +210,7 @@ function Record() {
 
         if (response.data.success) {
           console.log("Diagram history saved:", response.data);
+          console.log("Calling refetch to update history...");
           refetch();
         } else {
           console.error("Failed to save diagram history:", response.data.error);
