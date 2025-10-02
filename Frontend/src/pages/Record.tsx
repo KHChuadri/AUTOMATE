@@ -46,7 +46,7 @@ function Record() {
 
   const [diagramPairs, setDiagramPairs] = useState<DiagramPair[]>([]);
   const diagramPairsRef = useRef<DiagramPair[]>([]);
-  
+
   // Debug: Track diagramPairs changes
   useEffect(() => {
     console.log("diagramPairs state updated:", diagramPairs);
@@ -116,28 +116,31 @@ function Record() {
   }, [data]);
 
   const generateDiagram = async (prompt: string): Promise<string> => {
-    console.log("generateDiagram called, lastDiagram", diagramPairsRef.current)
+    console.log("generateDiagram called, lastDiagram", diagramPairsRef.current);
     try {
       // Get the last diagram from history to provide context
-      const lastDiagram = diagramPairsRef.current.length > 0 ? diagramPairsRef.current[0].diagram : null;
-      
+      const lastDiagram =
+        diagramPairsRef.current.length > 0
+          ? diagramPairsRef.current[0].diagram
+          : null;
+
       if (lastDiagram) {
         console.log("Using previous diagram as context for iterative building");
       } else {
         console.log("Creating new diagram from scratch");
       }
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/diagram/generate-diagram`,
         {
           prompt,
           diagramId,
-          previousDiagram: lastDiagram, // Include previous diagram for context
+          previousDiagram: lastDiagram,
         }
       );
 
       if (response.data.success && response.data.mermaidCode) {
-        console.log('OpenAI Response:', response.data.mermaidCode);
+        console.log("OpenAI Response:", response.data.mermaidCode);
         return response.data.mermaidCode;
       }
       throw new Error("Failed to generate diagram");
@@ -148,12 +151,12 @@ function Record() {
   };
 
   const processAccumulatedText = useCallback(() => {
-    console.log("processAccumulatedText called")
+    console.log("processAccumulatedText called");
     if (accumulatedText.current.length === 0) return;
-    console.log("accumulatedText is not 0 in length")
+    console.log("accumulatedText is not 0 in length");
+    
     const fullContext = accumulatedText.current.join(" ");
     const promptToProcess = fullContext;
-
     accumulatedText.current = [];
 
     aiQueue.current.add(async () => {
@@ -164,36 +167,35 @@ function Record() {
       try {
         const mermaidCode = await generateDiagram(promptToProcess);
         setCurrentDiagram(mermaidCode);
-
-        // Save to history after successful generation
         await saveDiagramHistory(promptToProcess, mermaidCode);
-
         setStatus("Diagram generated!");
       } catch (error) {
         console.error("Failed to generate diagram:", error);
         setStatus("Failed to generate diagram");
       } finally {
         setIsProcessing(false);
-
-        // Reset status after a delay
         setTimeout(() => {
-          if (isListening) {
-            setStatus("Listening...");
-          } else {
-            setStatus("Connected");
-          }
+          setStatus((prev) => {
+            // Use functional update to avoid dependency on isListening
+            return isListeningRef.current ? "Listening..." : "Connected";
+          });
         }, 2000);
       }
     });
-  }, [diagramId, isListening]);
+  }, []);
 
-  const debouncedProcess = useCallback(
+  const debouncedProcessRef = useRef(
     debounce(() => {
-      console.log("debounceProcess called")
+      console.log("debounceProcess called");
       processAccumulatedText();
-    }, 5000),
-    [processAccumulatedText]
+    }, 5000)
   );
+
+  useEffect(() => {
+    debouncedProcessRef.current = debounce(() => {
+      processAccumulatedText();
+    }, 5000);
+  }, [processAccumulatedText]);
 
   // Save diagram history - use useCallback to memoize
   const saveDiagramHistory = useCallback(
@@ -284,7 +286,7 @@ function Record() {
 
       if (data.text) {
         accumulatedText.current.push(data.text);
-        debouncedProcess();
+        debouncedProcessRef.current(); // Use ref instead
       }
     });
 
@@ -295,8 +297,9 @@ function Record() {
 
     return () => {
       newSocket.close();
+      debouncedProcessRef.current.cancel();
     };
-  }, [saveDiagramHistory, currentDiagram]);
+  }, []); 
 
   const startListening = async () => {
     if (!socket) return;
@@ -375,6 +378,9 @@ function Record() {
     }
 
     setIsListening(false);
+    
+    // Process any remaining text
+    debouncedProcessRef.current.flush();
   };
 
   return (
