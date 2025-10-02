@@ -35,7 +35,7 @@ const Diagram: React.FC<DiagramProps> = ({ id, title, created_at, last_edited })
     <div className="flex flex-col px-6 py-8 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 border-2 gap-4">
       <div className="flex flex-col">
         <h3 className="font-bold text-lg mb-1">{title}</h3>
-        
+
         {last_edited && (
           <p className='text-gray-400 flex flex-row items-center gap-1.5'>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,18 +55,12 @@ const Diagram: React.FC<DiagramProps> = ({ id, title, created_at, last_edited })
         )}
       </div>
 
-      <div className='flex justify-center gap-4 items-center'>
-        <button 
+      <div className='flex-start gap-4 items-center'>
+        <button
           onClick={() => navigate(`/record/${id}`)}
           className='w-1/2 h-full bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-center text-white text-md font-semibold px-4 py-2 transition-colors'
         >
           View
-        </button>
-        <button
-          onClick={() => navigate(`/diagram/${id}/edit`)}
-          className='w-1/2 h-full border-gray-300 border hover:bg-gray-100 rounded-lg flex items-center justify-center text-md font-semibold px-4 py-2 transition-colors'
-        >
-          Edit
         </button>
       </div>
     </div>
